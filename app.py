@@ -254,6 +254,93 @@ st.markdown(
         color: var(--muted);
         font-size: 13px;
     }
+    .chart-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 16px;
+        min-height: 250px;
+    }
+    .chart-panel-title {
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+    .chart-row {
+        display: grid;
+        grid-template-columns: 82px 1fr 38px;
+        gap: 10px;
+        align-items: center;
+        margin: 13px 0;
+    }
+    .chart-label {
+        color: #344054;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .chart-track {
+        height: 12px;
+        border-radius: 999px;
+        background: #eef2f7;
+        overflow: hidden;
+    }
+    .chart-fill {
+        height: 100%;
+        min-width: 5px;
+        border-radius: 999px;
+    }
+    .chart-value {
+        color: var(--muted);
+        font-size: 13px;
+        text-align: right;
+    }
+    .matrix-table, .detail-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+        background: #ffffff;
+    }
+    .matrix-table th, .matrix-table td,
+    .detail-table th, .detail-table td {
+        border-bottom: 1px solid var(--line);
+        padding: 11px 12px;
+        text-align: left;
+        font-size: 13px;
+        vertical-align: top;
+    }
+    .matrix-table th, .detail-table th {
+        color: #344054;
+        background: #f8fafc;
+        font-weight: 700;
+    }
+    .matrix-table tr:last-child td,
+    .detail-table tr:last-child td {
+        border-bottom: 0;
+    }
+    .matrix-cell-high {
+        color: #b42318;
+        background: #fef3f2;
+        font-weight: 700;
+        text-align: center !important;
+    }
+    .matrix-cell-mid {
+        color: #b54708;
+        background: #fffaeb;
+        font-weight: 700;
+        text-align: center !important;
+    }
+    .matrix-cell-low {
+        color: #027a48;
+        background: #ecfdf3;
+        font-weight: 700;
+        text-align: center !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -336,7 +423,10 @@ with input_col:
         if uploaded_file is not None:
             uploaded_df = pd.read_csv(uploaded_file)
             st.write("已读取文件预览：")
-            st.dataframe(uploaded_df.head(10), use_container_width=True)
+            st.markdown(
+                uploaded_df.head(10).to_html(index=False, classes="detail-table"),
+                unsafe_allow_html=True,
+            )
 
             column_options = list(uploaded_df.columns)
             default_column = next(
@@ -414,6 +504,71 @@ def build_bar_html(counts, total, color):
             """
         )
     return "".join(rows)
+
+
+def build_dashboard_chart(counts, color):
+    total = int(counts.sum())
+    rows = []
+    for label, value in counts.items():
+        width = max(5, round(value / total * 100)) if total else 0
+        rows.append(
+            f"""
+            <div class="chart-row">
+                <div class="chart-label" title="{escape(str(label))}">{escape(str(label))}</div>
+                <div class="chart-track">
+                    <div class="chart-fill" style="width:{width}%; background:{color};"></div>
+                </div>
+                <div class="chart-value">{int(value)}</div>
+            </div>
+            """
+        )
+    return "".join(rows) or '<div class="small-muted">暂无数据</div>'
+
+
+def build_matrix_html(matrix):
+    rows = []
+    for category, values in matrix.iterrows():
+        rows.append(
+            f"""
+            <tr>
+                <td>{escape(str(category))}</td>
+                <td class="matrix-cell-high">{int(values["高"])}</td>
+                <td class="matrix-cell-mid">{int(values["中"])}</td>
+                <td class="matrix-cell-low">{int(values["低"])}</td>
+            </tr>
+            """
+        )
+    return f"""
+    <table class="matrix-table">
+        <thead><tr><th>问题类型</th><th>高优先级</th><th>中优先级</th><th>低优先级</th></tr></thead>
+        <tbody>{''.join(rows)}</tbody>
+    </table>
+    """
+
+
+def build_detail_table_html(df):
+    rows = []
+    for _, item in df.iterrows():
+        rows.append(
+            f"""
+            <tr>
+                <td>{escape(str(item.get("original_feedback", "")))}</td>
+                <td>{escape(str(item.get("category", "")))}</td>
+                <td>{escape(str(item.get("priority", "")))}</td>
+                <td>{escape(str(item.get("sentiment", "")))}</td>
+                <td>{escape(str(item.get("developer_need", "")))}</td>
+                <td>{escape(str(item.get("suggested_action", "")))}</td>
+            </tr>
+            """
+        )
+    return f"""
+    <table class="detail-table">
+        <thead>
+            <tr><th>原始反馈</th><th>类型</th><th>优先级</th><th>情绪</th><th>真实需求</th><th>建议动作</th></tr>
+        </thead>
+        <tbody>{''.join(rows)}</tbody>
+    </table>
+    """
 
 
 def build_report_html(result, df, category_counts, priority_counts, sentiment_counts):
@@ -751,14 +906,20 @@ def render_dashboard(result):
         st.markdown('<div class="section-title">问题分布</div>', unsafe_allow_html=True)
         chart_col1, chart_col2, chart_col3 = st.columns(3)
         with chart_col1:
-            st.write("问题类型")
-            st.bar_chart(category_counts)
+            st.markdown(
+                f'<div class="chart-panel"><div class="chart-panel-title">问题类型</div>{build_dashboard_chart(category_counts, "#1f6feb")}</div>',
+                unsafe_allow_html=True,
+            )
         with chart_col2:
-            st.write("优先级")
-            st.bar_chart(priority_counts)
+            st.markdown(
+                f'<div class="chart-panel"><div class="chart-panel-title">优先级</div>{build_dashboard_chart(priority_counts, "#0f2747")}</div>',
+                unsafe_allow_html=True,
+            )
         with chart_col3:
-            st.write("情绪分布")
-            st.bar_chart(sentiment_counts)
+            st.markdown(
+                f'<div class="chart-panel"><div class="chart-panel-title">情绪分布</div>{build_dashboard_chart(sentiment_counts, "#22a6b3")}</div>',
+                unsafe_allow_html=True,
+            )
 
         st.markdown('<div class="section-title">运营优先级矩阵</div>', unsafe_allow_html=True)
         matrix = pd.crosstab(df["category"], df["priority"])
@@ -766,7 +927,7 @@ def render_dashboard(result):
             if column not in matrix.columns:
                 matrix[column] = 0
         matrix = matrix[["高", "中", "低"]]
-        st.dataframe(matrix, use_container_width=True)
+        st.markdown(build_matrix_html(matrix), unsafe_allow_html=True)
 
     with tab_actions:
         product_col, ops_col = st.columns(2)
@@ -784,7 +945,7 @@ def render_dashboard(result):
             render_feedback_card(item)
 
         with st.expander("查看结构化明细表"):
-            st.dataframe(df, use_container_width=True)
+            st.markdown(build_detail_table_html(df), unsafe_allow_html=True)
 
     with tab_report:
         st.markdown('<div class="section-title">图文运营周报</div>', unsafe_allow_html=True)
