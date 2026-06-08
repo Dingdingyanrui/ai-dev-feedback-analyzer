@@ -512,15 +512,12 @@ def build_dashboard_chart(counts, color):
     for label, value in counts.items():
         width = max(5, round(value / total * 100)) if total else 0
         rows.append(
-            f"""
-            <div class="chart-row">
-                <div class="chart-label" title="{escape(str(label))}">{escape(str(label))}</div>
-                <div class="chart-track">
-                    <div class="chart-fill" style="width:{width}%; background:{color};"></div>
-                </div>
-                <div class="chart-value">{int(value)}</div>
-            </div>
-            """
+            f'<div class="chart-row">'
+            f'<div class="chart-label" title="{escape(str(label))}">{escape(str(label))}</div>'
+            f'<div class="chart-track"><div class="chart-fill" '
+            f'style="width:{width}%; background:{color};"></div></div>'
+            f'<div class="chart-value">{int(value)}</div>'
+            f'</div>'
         )
     return "".join(rows) or '<div class="small-muted">暂无数据</div>'
 
@@ -529,46 +526,41 @@ def build_matrix_html(matrix):
     rows = []
     for category, values in matrix.iterrows():
         rows.append(
-            f"""
-            <tr>
-                <td>{escape(str(category))}</td>
-                <td class="matrix-cell-high">{int(values["高"])}</td>
-                <td class="matrix-cell-mid">{int(values["中"])}</td>
-                <td class="matrix-cell-low">{int(values["低"])}</td>
-            </tr>
-            """
+            f'<tr>'
+            f'<td>{escape(str(category))}</td>'
+            f'<td class="matrix-cell-high">{int(values["高"])}</td>'
+            f'<td class="matrix-cell-mid">{int(values["中"])}</td>'
+            f'<td class="matrix-cell-low">{int(values["低"])}</td>'
+            f'</tr>'
         )
-    return f"""
-    <table class="matrix-table">
-        <thead><tr><th>问题类型</th><th>高优先级</th><th>中优先级</th><th>低优先级</th></tr></thead>
-        <tbody>{''.join(rows)}</tbody>
-    </table>
-    """
+    return (
+        '<table class="matrix-table">'
+        '<thead><tr><th>问题类型</th><th>高优先级</th><th>中优先级</th><th>低优先级</th></tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody>'
+        '</table>'
+    )
 
 
 def build_detail_table_html(df):
     rows = []
     for _, item in df.iterrows():
         rows.append(
-            f"""
-            <tr>
-                <td>{escape(str(item.get("original_feedback", "")))}</td>
-                <td>{escape(str(item.get("category", "")))}</td>
-                <td>{escape(str(item.get("priority", "")))}</td>
-                <td>{escape(str(item.get("sentiment", "")))}</td>
-                <td>{escape(str(item.get("developer_need", "")))}</td>
-                <td>{escape(str(item.get("suggested_action", "")))}</td>
-            </tr>
-            """
+            f'<tr>'
+            f'<td>{escape(str(item.get("original_feedback", "")))}</td>'
+            f'<td>{escape(str(item.get("category", "")))}</td>'
+            f'<td>{escape(str(item.get("priority", "")))}</td>'
+            f'<td>{escape(str(item.get("sentiment", "")))}</td>'
+            f'<td>{escape(str(item.get("developer_need", "")))}</td>'
+            f'<td>{escape(str(item.get("suggested_action", "")))}</td>'
+            f'</tr>'
         )
-    return f"""
-    <table class="detail-table">
-        <thead>
-            <tr><th>原始反馈</th><th>类型</th><th>优先级</th><th>情绪</th><th>真实需求</th><th>建议动作</th></tr>
-        </thead>
-        <tbody>{''.join(rows)}</tbody>
-    </table>
-    """
+    return (
+        '<table class="detail-table">'
+        '<thead><tr><th>原始反馈</th><th>类型</th><th>优先级</th><th>情绪</th>'
+        '<th>真实需求</th><th>建议动作</th></tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody>'
+        '</table>'
+    )
 
 
 def build_report_html(result, df, category_counts, priority_counts, sentiment_counts):
